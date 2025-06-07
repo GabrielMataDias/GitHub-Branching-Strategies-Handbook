@@ -1,114 +1,139 @@
-# GitHub-Branching-Strategies-Handbook
+# GitHub Branching Strategies Handbook  
+*Version 2.1 · Atualizado 2025-06-07*
 
-Este documento oferece uma visão abrangente das estratégias de branching no GitHub, especialmente adaptadas para equipes de diferentes tamanhos. Explora-se cada estratégia com seus benefícios, desvantagens, aplicações práticas e exemplos.
+Manual operacional para definir, implantar e manter fluxos de branching em repositórios GitHub.  
+Exemplos usam **HTTPS remotes** e **Conventional Commits**.
 
-## 1. Workflow de Branch de Recurso
-**Tamanho da Equipe:** Pequena a Média
+--------------------------------------------------------------------
 
-### Estratégia
-- Criação de branches separadas para cada recurso ou correção de bugs a partir da branch `main`.
-- Os recursos são integrados à branch `main` após conclusão e teste.
+## Sumário
+1. Matriz de Seleção Rápida  
+2. Workflows  
+   - Feature Branch  
+   - GitHub Flow  
+   - Trunk-Based Development (TBD)  
+   - Git Flow  
+   - Release Branch Flow  
+   - Environment Branch Flow  
+   - Forking Flow  
+3. Padrões Operacionais  
+4. Checklist de Migração  
 
-### Prós
-- Isola o desenvolvimento, protegendo o código principal até a finalização do recurso.
-- Fomenta a integração contínua e mesclagens frequentes.
+--------------------------------------------------------------------
 
-### Contras
-- Suscetível a conflitos de mesclagem se não sincronizado regularmente com a branch `main`.
-- Exige disciplina para manutenção de branches curtas.
+## Matriz de Seleção Rápida
 
-### Caso de Uso
-- Equipes desenvolvendo múltiplos recursos em paralelo para um aplicativo web.
+| Estratégia             | Devs     | Freq. Release | Governança | Risco Conflito | Overhead |
+|------------------------|----------|---------------|------------|----------------|----------|
+| Feature Branch         | 2‑15     | Semanal       | Baixa      | Médio          | Baixo    |
+| GitHub Flow            | 2‑10     | Diária        | Baixa      | Médio          | Baixo    |
+| TBD                    | 5‑50+    | Horas         | Média      | Alto           | Muito baixo |
+| Git Flow               | 10‑80    | Mensal        | Alta       | Alto           | Alto     |
+| Release Branch         | 10‑200   | Quinzenal     | Média      | Alto           | Médio    |
+| Environment Branch     | 5‑40     | Ambiente      | Média      | Alto           | Médio    |
+| Forking Flow           | OpenSrc  | Irregular     | Alta       | Alto           | Alto     |
 
-### Exemplo
-- Criação da branch `feature/autenticacao-usuario` para um novo sistema de autenticação.
+*→ Em caso de dúvida, adote o fluxo mais simples que atenda aos requisitos de release.*
 
-## 2. Gitflow Workflow
-**Tamanho da Equipe:** Média a Grande
+--------------------------------------------------------------------
 
-### Estratégia
-- Utiliza duas branches principais: `main` e `develop`.
-- Branches de recurso partem de `develop`, e, uma vez finalizadas, são integradas a ela.
-- Lançamentos são gerenciados por branches específicas, que posteriormente são mescladas em `main` e versionadas.
+## Workflows
 
-### Prós
-- Estrutura clara, separando o desenvolvimento do código liberado.
-- Ideal para gerenciamento controlado de lançamentos.
+### Feature Branch
+Isola cada funcionalidade em branch curta criada a partir de `main`.
 
-### Contras
-- Mais complexo, com múltiplos tipos de branches.
-- Potencialmente exagerado para projetos menores.
+```bash
+git switch -c feature/user-auth
+# …desenvolvimento…
+git push -u origin feature/user-auth
+```
 
-### Caso de Uso
-- Equipes com lançamentos programados e necessidade de uma branch de produção estável.
+Prós: Código inacabado isolado; CI simplificada  
+Contras: Conflitos crescem em branches longas  
+Ideal para: Apps com 3‑10 devs paralelizando features  
+Naming: `feature/<domínio>-<slug>` — ex.: `feature/catalog-price-index`
 
-### Exemplo
-- Criação da branch `release/v1.2` a partir de `develop` para ajustes pré-lançamento.
+--------------------------------------------------------------------
 
-## 3. Workflow de Forking
-**Tamanho da Equipe:** Open Source / Grandes Equipes
+### GitHub Flow
+Fluxo enxuto com revisão obrigatória via Pull Request.
 
-### Estratégia
-- Desenvolvedores fazem fork do repositório principal e trabalham em suas cópias.
-- Alterações propostas via pull requests para o repositório original.
+1. `git switch -c fix/login-rate-limit`  
+2. Push & PR (draft opcional).  
+3. CI ✅ → merge em `main` → deploy automático.
 
-### Prós
-- Ideal para projetos open source e contribuições externas.
-- Mantenedores controlam integralmente as integrações no projeto principal.
+Prós: Ciclo de feedback curtíssimo; Processo simples  
+Contras: Depende de CI/CD robusto; Não cobre releases complexos
 
-### Contras
-- Gestão e sincronização de forks mais complexa.
-- Revisão de código e mesclagem podem ser mais trabalhosas.
+--------------------------------------------------------------------
 
-### Caso de Uso
-- Projetos open source ou com contribuições externas significativas.
+### Trunk-Based Development (TBD)
+Commits pequenos; merge diário direto em `main`. Código parcial protegido por feature toggles.
 
-### Exemplo
-- Um contribuidor externo realiza fork, adiciona funcionalidade de log e propõe um pull request.
+```bash
+git switch -c feat/payment-toggle
+git commit -m "feat(payment): add toggle 'paymentV2'"
+git switch main && git merge --no-ff feat/payment-toggle
+```
 
-## 4. Desenvolvimento Baseado no Tronco (Trunk-Based Development)
-**Tamanho da Equipe:** Pequena a Média (Escalável para grandes equipes)
+Prós: Integrações rápidas; Conflitos quase nulos  
+Contras: Requer cultura forte de testes + toggles
 
-### Estratégia
-- Commits diretos na branch `main` com branches de recurso curtas.
-- Ênfase em integrações rápidas e commits frequentes.
+--------------------------------------------------------------------
 
-### Prós
-- Favorece a integração contínua e ciclos de feedback ágeis.
-- Simplifica o processo ao evitar branches longas.
+### Git Flow
+Fluxo hierárquico com `main`, `develop`, `feature/*`, `release/*`, `hotfix/*`.
 
-### Contras
-- Exige disciplina e práticas sólidas de CI/CD.
-- Risco maior para grandes equipes, devido a possíveis conflitos e instabilidade.
+Prós: Congela código para QA; hotfix claro  
+Contras: Manutenção custosa; merges duplicados
 
-### Caso de Uso
-- Equipes focadas em entrega contínua e iterações rápidas.
+--------------------------------------------------------------------
 
-### Exemplo
-- Desenvolvedores utilizam branches curtas para recursos, integradas à `main` em poucos dias.
+### Release Branch Flow
+Branch de versão estável (`release/x.y`) enquanto `main` segue recebendo features.
 
-## 5. GitHub Flow
-**Tamanho da Equipe:** Pequena a Média
+Prós: QA e patches isolados sem travar `main`  
+Contras: Cherry‑pick recorrente
 
-### Estratégia
-- Semelhante ao Desenvolvimento Baseado no Tronco, mas com a adição de pull requests.
-- Todas as alterações são revisadas e integradas à `main`.
+--------------------------------------------------------------------
 
-### Prós
-- Simplicidade e facilidade de entendimento.
-- Promove a revisão de código e colaboração.
+### Environment Branch Flow
+Uma branch permanente por ambiente (`staging`, `production`). Merges promovem versões.
 
-### Contras
-- Pode ser limitado para gerenciamento de lançamentos complexos.
-- Dependente de práticas eficazes de CI/CD.
+Prós: Estado de cada ambiente visível  
+Contras: Necessita merge‑forward disciplinado
 
-### Caso de Uso
-- Equipes menores buscando simplicidade com ênfase em revisões de código.
+--------------------------------------------------------------------
 
-### Exemplo
-- Um desenvolvedor trabalha na `fix/correcao-login`, submete alterações via pull request e, após revisão, integra à `main`.
+### Forking Flow
+Contribuidores trabalham em forks; enviam PR para o upstream.
 
----
+Prós: Seguro para open source; escala infinita  
+Contras: Sincronização fork ↔ upstream
 
-**Conclusão:**
-Cada estratégia de branching apresenta vantagens e limitações distintas. A escolha apropriada depende do tamanho da equipe, complexidade do projeto e necessidades de gerenciamento de lançamento. Workflows mais simples como GitHub Flow ou Desenvolvimento Baseado no Tronco são benéficos para equipes menores, enquanto Gitflow ou Workflow de Forking podem ser mais adequados para equipes maiores ou com processos mais estruturados. É crucial alinhar a estratégia de branching ao fluxo de trabalho da equipe para assegurar uma colaboração e gestão de código eficientes e eficazes.
+--------------------------------------------------------------------
+
+## Padrões Operacionais
+• Prefixos: `feature/`, `fix/`, `hotfix/`, `release/`, `docs/`, `chore/`, `exp/`  
+• Commits: Conventional Commits  
+• Pull Requests: checklist (testes, docs, breaking changes, ticket ID)  
+• Proteção: `main` — revisão + CI verde; tags SemVer (`v2.4.1`)  
+• Feature Toggle: flags/dark launch para código incompleto em TBD & GitHub Flow  
+
+--------------------------------------------------------------------
+
+## Checklist de Migração
+1. Diagnóstico – medir merge time & build-break rate (90 d)  
+2. Escolha – alinhar estratégia ao lead time desejado  
+3. Piloto – aplicar em serviço isolado; coletar métricas  
+4. Automação – CI: lint, testes, security scan obrigatórios  
+5. Proteções – CODEOWNERS + regras de branch  
+6. Retrospectiva – revisar após 2 ciclos de release  
+
+--------------------------------------------------------------------
+
+Decisão‑Guia  
+• ≤10 devs & deploy frequente → GitHub Flow ou TBD  
+• Releases agendados → Release Branch ou Git Flow  
+• Open Source → Forking Flow  
+• Regra de ouro: escolha o workflow mais simples que cubra governança e entrega
